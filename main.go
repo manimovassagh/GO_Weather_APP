@@ -8,7 +8,7 @@ import (
 )
 
 type apiConfigData struct {
-	openWeatherMapApiKey string `json:"openWeatherMapApiKey`
+	OpenWeatherMapApiKey string `json:"OpenWeatherMapApiKey`
 }
 
 type weatherData struct {
@@ -37,24 +37,23 @@ func hello(w http.ResponseWriter, r *http.Request) {
 }
 
 func query(city string) (weatherData, error) {
-
 	apiConfig, err := loadApiConfig(".apiConfig")
 	if err != nil {
 		return weatherData{}, err
 	}
 
-	resp, err := http.Get("http://api.openweathermap.org/data/2.5/weather?q=" + city + "&appid=" + apiConfig.openWeatherMapApiKey)
+	resp, err := http.Get("http://api.openweathermap.org/data/2.5/weather?APPID=" + apiConfig.OpenWeatherMapApiKey + "&q=" + city)
 	if err != nil {
 		return weatherData{}, err
 	}
 
 	defer resp.Body.Close()
+
 	var d weatherData
 	if err := json.NewDecoder(resp.Body).Decode(&d); err != nil {
 		return weatherData{}, err
 	}
 	return d, nil
-
 }
 
 func main() {
@@ -69,6 +68,18 @@ func main() {
 				return
 			}
 			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(data)
+		})
+
+	http.HandleFunc("/weather2/",
+		func(w http.ResponseWriter, r *http.Request) {
+			city := strings.SplitN(r.URL.Path, "/", 3)[2]
+			data, err := query(city)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			w.Header().Set("Content-Type", "application/json; charset=utf-8")
 			json.NewEncoder(w).Encode(data)
 		})
 
